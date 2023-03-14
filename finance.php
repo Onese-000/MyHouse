@@ -1,3 +1,91 @@
+<?php 
+    if (isset($_POST['checkout'])) {
+
+        
+
+        //This function will handle the mpesa stk payment
+        function STK_PUSH()
+        {
+            date_default_timezone_set('Africa/Nairobi');
+            //callbackURL
+            $callback_url = '';
+            $access_token_url = 'https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials';
+            $stk_push_url = 'https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest';
+
+            //access tokens
+            $consumer_key = 'T4JaNS1DQMAbQIv4g9GjWAGuzIvICSsg';
+            $consumer_sercret = 'dyuzb3kYJZoWl9T2';
+
+            //GET THE USER INPUT
+            $phonenumber = $_POST['phonenumber'];
+            $amount = $_POST['amount'];
+            
+            //timestamp
+            $timestamp = date('YmdHis');
+            
+
+            //shortcode
+            $shortcode = '9922067';
+
+            //passkey
+            $pass = 'bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919';
+
+            //encode passkey
+            $passkey = $shortcode.$pass.$timestamp;
+            $encode_passkey = base64_encode($passkey);
+            
+            //'Password' => 'MTc0Mzc5YmZiMjc5ZjlhYTliZGJjZjE1OGU5N2RkNzFhNDY3Y2QyZTBjODkzMDU5YjEwZjc4ZTZiNzJhZGExZWQyYzkxOTIwMjMwMzE0MDk0MzU0',
+
+            //Authorization Request in PHP 
+            
+            $ch = curl_init($access_token_url);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, [ 'Authorization: Basic ' .base64_encode($consumer_key.":".$consumer_sercret)]);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            $response = curl_exec($ch);
+            $response = json_decode($response);
+            $access_token = $result ->access_token;
+
+            $data = [                
+                'BusinessShortCode' => $shortcode,
+                'Password' => $encode_passkey,
+                'Timestamp' => $timestamp,
+                'TransactionType' => 'CustomerBuyGoodsOnline',
+                'Amount' => $amount,
+                'PartyA' => $phonenumber,
+                'PartyB' => $shortcode,
+                'PhoneNumber' => $phonenumber,
+                'CallBackURL' => 'https://mydomain.com/path',
+                'AccountReference' => "MyHouse",
+                'TransactionDesc' => 'Payment of Rent' 
+            ];
+
+            $jsondata = json_encode($data);     
+
+            $ch = curl_init($stk_push_url);
+          
+            curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                'Authorization: Bearer'.$access_token,
+                'Content-Type: application/json'
+            ]);
+
+            curl_setopt($ch, CURLOPT_POST, 1);
+            curl_setopt($ch, CURLOPT_POSTFIELDS,$jsondata);
+
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+            $reply   = curl_exec($ch);
+            curl_close($ch);
+            echo $reply;
+        }
+
+    }
+
+
+
+
+
+?>
+
+
 <!DOCTYPE html>
 <html dir="ltr" lang="en">
 
@@ -258,6 +346,7 @@
                                 <!-- <h3 class="box-title" style="text-align:center;">Total Payments &emsp;</h3> -->
                                 <ul class="list-inline two-part d-flex align-items-center mb-0">
                                     <li>
+                                        <form method="POST" action="#">
                                         <div>
                                             <h6 class="ms-auto"><span class="counter text-danger" style="font-size:16px;" >
                                                 <strong>Arrears: &emsp;&emsp;&emsp;&ensp;&ensp;&nbsp;&emsp;10,000 </strong></span></h6>
@@ -274,23 +363,23 @@
                                                 </label>
                                             </div>
                                             <div class="form-group" id="amountTextAreaWrapper" >
-                                                <label for="amountTextArea">Amount in Ksh.</label>
-                                                <textarea class="form-control" id="amountTextArea" rows="1" style="resize:none" readonly>10000</textarea>
+                                                <label for="amount">Amount in Ksh.</label>
+                                                <textarea class="form-control" id="amount" rows="1" style="resize:none" readonly>10000</textarea>
                                             </div>
 
                                             <div class="form-group">
                                                 <div class="row">
                                                     <div class="col-sm-5">
-                                                        <label for="exampleInputMobile1">Saf Mobile Number</label>
-                                                    
+                                                        <label for="phonenumber">Saf Mobile Number</label>
                                                     </div>   
                                                     <div class="col-sm-7">
                                                         <img src="mpesa-original.png" alt="icon" height="30" width="60">                                                </div>                   
-                                                <input type="tel" class="form-control" id="exampleInputMobile1" aria-describedby="mobileHelp">
+                                                <input type="tel" class="form-control" id="phonenumber" aria-describedby="mobileHelp">
                                             </div>
 
                                             
                                         </div>
+                                      
                                     </li>
                                 </ul>
                             </div>
@@ -298,8 +387,9 @@
                     </div>      
 
                     <div class="d-flex justify-content-center align-items-center h-100" style="margin-top:30px;">
-                        <button class="btn btn-primary "  data-toggle="modal" data-target="#myModal" id="checkout" >Checkout</button>
+                        <button class="btn btn-primary " type="submit" name="checkout" data-toggle="modal" data-target="#myModal" id="checkout" >Checkout</button>
                     </div>
+    </form>
 
                     <!-- The Modal -->
                     <div class="modal fade" id="myModal">
@@ -365,7 +455,8 @@
     <!-- ============================================================== -->
     <script src="plugins/bower_components/jquery/dist/jquery.min.js"></script>
     <!-- Bootstrap tether Core JavaScript -->
-    <script src="bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    
+    
     <script src="js/app-style-switcher.js"></script>
     <!--Wave Effects -->
     <script src="js/waves.js"></script>
